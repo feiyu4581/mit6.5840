@@ -3,16 +3,30 @@ package coordinate;
 
 option go_package = "/pb";
 
+enum WorkerStatus {
+  RunningStatus = 0;
+  OfflineStatus = 1;
+}
+
 message ClientInfo {
   string name = 1;
   string address = 2;
 }
 
-message RegisterResponse {
+message HeartbeatRequest {
+  // 服务当前状态
+  string name = 1;
+  WorkerStatus status = 2;
+
+  // 当前任务执行状态
+}
+
+message Response {
   int64 code = 1;
   string message = 2;
 }
 
 service MapService {
-  rpc Register(ClientInfo) returns (RegisterResponse);
+  rpc Register(ClientInfo) returns (Response);
+  rpc Heartbeat(HeartbeatRequest) returns (Response);
 }

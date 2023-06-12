@@ -13,3 +13,9 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+!/mapreduce/logs/
+/.idea/.gitignore
+/.idea/mit6.5840.iml
+/.idea/modules.xml
+/.idea/vcs.xml
+/mapreduce/logs/log.log.20230504
