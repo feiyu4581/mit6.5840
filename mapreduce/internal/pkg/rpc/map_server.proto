@@ -1,0 +1,29 @@
+syntax = "proto3";
+package map_server;
+
+option go_package = "/map_server";
+
+message Task {
+  string name = 1;
+  string task_id = 2;
+  string filename = 3;
+  repeated string params = 4;
+}
+
+message TaskStatus {
+  enum Status {
+    Init = 0;
+    Running = 1;
+    Finished = 2;
+    Failed = 3;
+  }
+
+  string task_id = 1;
+  Status status = 2;
+  double progress = 3;
+}
+
+service Map {
+  // 尝试一下返回值中直接返回 error，看看效果
+  rpc NewTask(Task) returns (TaskStatus);
+}

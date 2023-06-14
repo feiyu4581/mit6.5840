@@ -13,14 +13,14 @@ import (
 	"net/http"
 )
 
-type HttpServer struct {
+type CoordinateServer struct {
 	Option     *option.Option
 	Server     *http.Server
 	GrpcServer *grpc.Server
 }
 
-func NewServer(ctx context.Context, option *option.Option) (*HttpServer, error) {
-	server := &HttpServer{
+func NewServer(ctx context.Context, option *option.Option) (*CoordinateServer, error) {
+	server := &CoordinateServer{
 		Option: option,
 	}
 
@@ -31,18 +31,18 @@ func NewServer(ctx context.Context, option *option.Option) (*HttpServer, error) 
 	return server, nil
 }
 
-func (server *HttpServer) GetOption() *option.Option {
+func (server *CoordinateServer) GetOption() *option.Option {
 	return server.Option
 }
 
-func (server *HttpServer) Init() error {
+func (server *CoordinateServer) Init() error {
 	log.InitLogrus()
 	server.Server = http_server.NewHttpServer(server.GetOption().Port)
 	server.GrpcServer = grpc_server.InitGrpcServer(grpc.NewServer())
 	return nil
 }
 
-func (server *HttpServer) Start() {
+func (server *CoordinateServer) Start() {
 	go func() {
 		log.Info("http server: %d", server.GetOption().Port)
 		if err := server.Server.ListenAndServe(); err != nil {

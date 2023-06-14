@@ -1,7 +1,7 @@
 syntax = "proto3";
 package coordinate;
 
-option go_package = "/pb";
+option go_package = "/coordinate";
 
 enum WorkerStatus {
   RunningStatus = 0;
@@ -26,7 +26,7 @@ message Response {
   string message = 2;
 }
 
-service MapService {
+service Coordinate {
   rpc Register(ClientInfo) returns (Response);
   rpc Heartbeat(HeartbeatRequest) returns (Response);
 }

@@ -33,9 +33,10 @@ var coordinateCmd = &cobra.Command{
 		timeoutCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 		if err := server.Server.Shutdown(timeoutCtx); err != nil {
-			log.Fatal("HttpServer Shutdown:", err)
+			log.Fatal("CoordinateServer Shutdown:", err)
 		}
 
+		server.GrpcServer.GracefulStop()
 		log.Info("Server close success")
 	},
 }

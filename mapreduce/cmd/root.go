@@ -9,6 +9,7 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 	rootCmd.AddCommand(coordinateCmd)
+	rootCmd.AddCommand(mapCmd)
 	if err := rootCmd.Execute(); err != nil {
 		panic(err.Error())
 	}
