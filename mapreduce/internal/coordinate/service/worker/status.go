@@ -1,4 +1,4 @@
-package map_worker
+package worker
 
 type WorkerStatus int
 

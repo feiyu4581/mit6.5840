@@ -12,11 +12,11 @@ func (server *MapServer) LoopForHeartBeat() {
 	for {
 		select {
 		case <-ticker.C:
-			if err := client.HeartbeatRunning(server.Ctx, server.Name); err != nil {
+			if err := client.HeartbeatRunning(server.Ctx, server.Worker); err != nil {
 				log.Error("heartbeat error: %s", err.Error())
 			}
 		case <-server.Ctx.Done():
-			if err := client.HeartbeatOffline(server.Ctx, server.Name); err != nil {
+			if err := client.HeartbeatOffline(server.Ctx, server.Worker); err != nil {
 				log.Error("heartbeat error: %s", err.Error())
 			}
 		}

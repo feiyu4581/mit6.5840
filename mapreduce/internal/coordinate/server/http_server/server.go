@@ -16,3 +16,7 @@ func NewHttpServer(port int) *http.Server {
 		Handler: router,
 	}
 }
+
+func NewTask(context *gin.Context) {
+
+}

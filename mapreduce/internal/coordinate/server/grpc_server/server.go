@@ -3,7 +3,7 @@ package grpc_server
 import (
 	"context"
 	"google.golang.org/grpc"
-	"mapreduce/internal/coordinate/service/map_worker"
+	"mapreduce/internal/coordinate/service/worker"
 	"mapreduce/internal/pkg/rpc/coordinate"
 )
 
@@ -27,7 +27,7 @@ func NewErrorResponse(err error) (*coordinate.Response, error) {
 }
 
 func (s *Server) Register(ctx context.Context, info *coordinate.ClientInfo) (*coordinate.Response, error) {
-	_, err := map_worker.NewWorker(info.Name, info.Address)
+	_, err := worker.NewWorker(info.Name, info.Address)
 	if err != nil {
 		return NewErrorResponse(err)
 	}
@@ -36,19 +36,19 @@ func (s *Server) Register(ctx context.Context, info *coordinate.ClientInfo) (*co
 }
 
 func (s *Server) Heartbeat(ctx context.Context, request *coordinate.HeartbeatRequest) (*coordinate.Response, error) {
-	worker, err := map_worker.GetWorker(request.Name)
+	wk, err := worker.GetWorker(request.Name)
 	if err != nil {
 		return NewErrorResponse(err)
 	}
 
 	switch request.Status {
 	case coordinate.WorkerStatus_RunningStatus:
-		worker.SetRunningStatus()
+		wk.SetRunningStatus()
 	case coordinate.WorkerStatus_OfflineStatus:
-		worker.SetOfflineStatus()
+		wk.SetOfflineStatus()
 	}
 
-	worker.UpdateHeartbeat()
+	wk.UpdateHeartbeat()
 	return NewSuccessResponse()
 }
 

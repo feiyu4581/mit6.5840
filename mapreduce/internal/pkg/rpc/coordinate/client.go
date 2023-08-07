@@ -5,6 +5,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"mapreduce/internal/coordinate/service/worker"
 	"sync"
 )
 
@@ -49,17 +50,17 @@ func (client *ServerClient) Register(ctx context.Context, name string, address s
 	return nil
 }
 
-func (client *ServerClient) HeartbeatRunning(ctx context.Context, name string) error {
-	return client.Heartbeat(ctx, name, WorkerStatus_RunningStatus)
+func (client *ServerClient) HeartbeatRunning(ctx context.Context, wk *worker.Worker) error {
+	return client.Heartbeat(ctx, wk, WorkerStatus_RunningStatus)
 }
 
-func (client *ServerClient) HeartbeatOffline(ctx context.Context, name string) error {
-	return client.Heartbeat(ctx, name, WorkerStatus_OfflineStatus)
+func (client *ServerClient) HeartbeatOffline(ctx context.Context, wk *worker.Worker) error {
+	return client.Heartbeat(ctx, wk, WorkerStatus_OfflineStatus)
 }
 
-func (client *ServerClient) Heartbeat(ctx context.Context, name string, status WorkerStatus) error {
+func (client *ServerClient) Heartbeat(ctx context.Context, wk *worker.Worker, status WorkerStatus) error {
 	response, err := client.client.Heartbeat(ctx, &HeartbeatRequest{
-		Name:   name,
+		Name:   wk.Name,
 		Status: status,
 	})
 

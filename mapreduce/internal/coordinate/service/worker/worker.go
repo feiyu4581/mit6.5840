@@ -1,4 +1,4 @@
-package map_worker
+package worker
 
 import (
 	"fmt"
@@ -8,11 +8,15 @@ import (
 	"time"
 )
 
+const (
+	MapHeartbeatTimeout = 1 * time.Minute
+)
+
 var (
 	workers sync.Map
 )
 
-type MapWorker struct {
+type Worker struct {
 	Name              string
 	Address           string
 	CreatedAt         time.Time
@@ -20,12 +24,12 @@ type MapWorker struct {
 	Status            WorkerStatus
 }
 
-func NewWorker(name string, address string) (*MapWorker, error) {
+func NewWorker(name string, address string) (*Worker, error) {
 	if _, ok := workers.Load(name); ok {
 		return nil, errors.New(fmt.Sprintf("map worker[%s] exists", name))
 	}
 
-	worker := MapWorker{
+	worker := Worker{
 		Name:      name,
 		Address:   address,
 		CreatedAt: time.Now(),
@@ -36,32 +40,41 @@ func NewWorker(name string, address string) (*MapWorker, error) {
 	return &worker, nil
 }
 
-func GetWorker(name string) (*MapWorker, error) {
+func GetWorker(name string) (*Worker, error) {
 	worker, ok := workers.Load(name)
 	if !ok {
 		return nil, errors.New(fmt.Sprintf("map worker[%s] does not exists", name))
 	}
 
-	return worker.(*MapWorker), nil
+	return worker.(*Worker), nil
 }
 
-func (worker *MapWorker) UpdateHeartbeat() {
+func (worker *Worker) UpdateHeartbeat() {
 	log.Info(fmt.Sprintf("map worker[%s] heartbeat", worker.Name))
 	worker.LastHeartbeatTime = time.Now()
 }
 
-func (worker *MapWorker) SetRunningStatus() {
+func (worker *Worker) GetCurrentStatus() WorkerStatus {
+	if worker.Status == RunningStatus {
+		if time.Now().Sub(worker.LastHeartbeatTime) > MapHeartbeatTimeout {
+			worker.SetOfflineStatus()
+		}
+	}
+	return worker.Status
+}
+
+func (worker *Worker) SetRunningStatus() {
 	worker.Status = RunningStatus
 }
 
-func (worker *MapWorker) SetIdleStatus() {
+func (worker *Worker) SetIdleStatus() {
 	worker.Status = IdleStatus
 }
 
-func (worker *MapWorker) SetOfflineStatus() {
+func (worker *Worker) SetOfflineStatus() {
 	worker.Status = OfflineStatus
 }
 
-func (worker *MapWorker) SetFailedStatus() {
+func (worker *Worker) SetFailedStatus() {
 	worker.Status = FailedStatus
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
+	"mapreduce/internal/coordinate/service/worker"
 	"mapreduce/internal/map_server/option"
 	"mapreduce/internal/map_server/server/grpc_server"
 	"mapreduce/internal/pkg/log"
@@ -12,16 +13,21 @@ import (
 )
 
 type MapServer struct {
-	Name       string
 	Option     *option.Option
 	Ctx        context.Context
 	GrpcServer *grpc.Server
+	Worker     *worker.Worker
 }
 
 func NewServer(ctx context.Context, workerName string, option *option.Option) (*MapServer, error) {
+	wk, err := worker.NewWorker(workerName, fmt.Sprintf(":%d", option.GrpcPort))
+	if err != nil {
+		return nil, errors.Wrap(err, "new worker error")
+	}
+
 	server := &MapServer{
 		Option: option,
-		Name:   workerName,
+		Worker: wk,
 		Ctx:    ctx,
 	}
 
