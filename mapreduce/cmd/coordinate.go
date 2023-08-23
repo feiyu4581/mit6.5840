@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/cobra"
 	"mapreduce/internal/coordinate/option"
 	CoordinateServer "mapreduce/internal/coordinate/server"
+	"mapreduce/internal/pkg/config"
 	"mapreduce/internal/pkg/log"
 	"os"
 	"os/signal"
@@ -14,10 +15,16 @@ import (
 
 var coordinateOption option.Option
 
+func initCoordinatorOption() {
+	config.UnmarshalConfig("./config/test/", "coordinate.yaml", &coordinateOption)
+}
+
 var coordinateCmd = &cobra.Command{
 	Use:   "coordinate [command]",
 	Short: "Start a coordinate server",
 	Run: func(cmd *cobra.Command, args []string) {
+		initCoordinatorOption()
+
 		ctx := context.Background()
 		server, err := CoordinateServer.NewServer(ctx, &coordinateOption)
 		if err != nil {
@@ -39,12 +46,4 @@ var coordinateCmd = &cobra.Command{
 		server.GrpcServer.GracefulStop()
 		log.Info("Server close success")
 	},
-}
-
-func init() {
-	coordinateCmd.PersistentFlags().IntVarP(
-		&coordinateOption.Port, "port", "p", 5432, "Coordinate server port")
-
-	coordinateCmd.PersistentFlags().IntVarP(
-		&coordinateOption.GrpcPort, "grpc_port", "g", 5433, "Coordinate grpc server port")
 }

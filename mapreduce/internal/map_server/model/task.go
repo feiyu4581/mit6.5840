@@ -1,7 +1,7 @@
-package service
+package model
 
 import (
-	"mapreduce/internal/pkg/worker"
+	"mapreduce/internal/pkg/model"
 	"time"
 )
 
@@ -15,18 +15,16 @@ const (
 )
 
 type Task struct {
-	TaskId    string
 	Name      string
 	Filename  string
 	Params    []string
 	StartTime time.Time
+	Function  *model.Function
 	Status    Status
-	Worker    worker.Worker
 }
 
-func NewTask(taskId string, name string, filename string, params []string) *Task {
+func NewTask(name string, filename string, params []string) *Task {
 	return &Task{
-		TaskId:   taskId,
 		Name:     name,
 		Filename: filename,
 		Params:   params,
@@ -35,6 +33,10 @@ func NewTask(taskId string, name string, filename string, params []string) *Task
 }
 
 func (task *Task) Start() {
+}
+
+func (task *Task) SetFunction(function *model.Function) {
+	task.Function = function
 }
 
 func (task *Task) GetStatus() Status {

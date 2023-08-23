@@ -1,8 +1,10 @@
 package service
 
 import (
+	"fmt"
 	"github.com/pkg/errors"
-	"mapreduce/internal/pkg/worker"
+	"mapreduce/internal/map_server/model"
+	functionModel "mapreduce/internal/pkg/model"
 )
 
 var workerManager *WorkerManager
@@ -13,27 +15,33 @@ func GetWorkerManager() *WorkerManager {
 
 func init() {
 	workerManager = &WorkerManager{
-		Workers: make(map[string]worker.Worker),
+		Functions: make(map[string]*functionModel.Function),
 	}
 }
 
 type TaskHistory struct {
-	Task *Task
+	Task *model.Task
 }
 
 type WorkerManager struct {
-	Workers       map[string]worker.Worker
-	CurrentTask   *Task
+	Functions     map[string]*functionModel.Function
+	CurrentTask   *model.Task
 	TaskHistories []TaskHistory
 }
 
-func (manager *WorkerManager) Register(workerName string, worker worker.Worker) {
-	manager.Workers[workerName] = worker
+func (manager *WorkerManager) Register(function *functionModel.Function) {
+	manager.Functions[function.Name] = function
 }
 
-func (manager *WorkerManager) AddTask(task *Task) error {
+func (manager *WorkerManager) AddTask(task *model.Task, functionName string) error {
 	if manager.CurrentTask != nil && !manager.CurrentTask.IsFinish() {
 		return errors.New("current task is running")
+	}
+
+	if function, ok := manager.Functions[functionName]; ok {
+		task.SetFunction(function)
+	} else {
+		return errors.New(fmt.Sprintf("function[%s] is not registered", functionName))
 	}
 
 	manager.CurrentTask = task

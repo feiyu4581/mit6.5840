@@ -3,11 +3,11 @@ package option
 import "time"
 
 type Option struct {
-	CoordinateAddress   string
-	CurrentAddress      string
-	GrpcPort            int
-	HeartBeatIntervalMs int
-	HeartBeatIntervalS  int
+	CoordinateAddress   string `mapstructure:"coordinate_address"`
+	CurrentAddress      string `mapstructure:"current_address"`
+	GrpcPort            int    `mapstructure:"grpc_port"`
+	HeartBeatIntervalMs int    `mapstructure:"heart_beat_interval_ms"`
+	HeartBeatIntervalS  int    `mapstructure:"heart_beat_interval_s"`
 }
 
 func (option *Option) GetHeartBeatInterval() time.Duration {

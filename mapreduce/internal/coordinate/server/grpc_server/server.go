@@ -3,7 +3,7 @@ package grpc_server
 import (
 	"context"
 	"google.golang.org/grpc"
-	"mapreduce/internal/coordinate/service/worker"
+	"mapreduce/internal/coordinate/service/coordinator"
 	"mapreduce/internal/pkg/rpc/coordinate"
 )
 
@@ -27,8 +27,7 @@ func NewErrorResponse(err error) (*coordinate.Response, error) {
 }
 
 func (s *Server) Register(ctx context.Context, info *coordinate.ClientInfo) (*coordinate.Response, error) {
-	_, err := worker.NewWorker(info.Name, info.Address)
-	if err != nil {
+	if err := coordinator.GetService().NewWorker(info.Name, info.Address); err != nil {
 		return NewErrorResponse(err)
 	}
 
@@ -36,7 +35,7 @@ func (s *Server) Register(ctx context.Context, info *coordinate.ClientInfo) (*co
 }
 
 func (s *Server) Heartbeat(ctx context.Context, request *coordinate.HeartbeatRequest) (*coordinate.Response, error) {
-	wk, err := worker.GetWorker(request.Name)
+	wk, err := coordinator.GetService().GetWorker(request.Name)
 	if err != nil {
 		return NewErrorResponse(err)
 	}

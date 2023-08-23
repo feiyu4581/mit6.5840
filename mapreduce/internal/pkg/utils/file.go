@@ -1,4 +1,4 @@
-package pkg
+package utils
 
 import (
 	"bufio"
@@ -26,12 +26,13 @@ func ReadFile(filename string) ([]Line, error) {
 	return lines, scanner.Err()
 }
 
-func SplitLinesToFile(lines []Line, n int, prefix string) error {
+func SplitLinesToFile(lines []Line, n int, prefix string) ([]string, error) {
 	if len(lines) == 0 {
-		return errors.New("lines is empty")
+		return nil, errors.New("lines is empty")
 	}
 
 	fileNum := len(lines) / n
+	var res []string
 	for i := 0; i*fileNum < len(lines); i++ {
 		fileName := fmt.Sprintf("/tmp/%s-%d.cache", prefix, i)
 		size := 0
@@ -46,10 +47,11 @@ func SplitLinesToFile(lines []Line, n int, prefix string) error {
 			contents = append(contents, '\n')
 		}
 
+		res = append(res, fileName)
 		if err := os.WriteFile(fileName, contents, 0644); err != nil {
-			return errors.Wrapf(err, "write file %s error", fileName)
+			return nil, errors.Wrapf(err, "write file %s error", fileName)
 		}
 	}
 
-	return nil
+	return res, nil
 }
