@@ -3,9 +3,9 @@ package grpc_server
 import (
 	"context"
 	"google.golang.org/grpc"
-	"mapreduce/internal/map_server/model"
-	"mapreduce/internal/map_server/service"
 	"mapreduce/internal/pkg/rpc/map_server"
+	"mapreduce/internal/worker_server/model"
+	"mapreduce/internal/worker_server/service"
 )
 
 type Server struct {
@@ -13,7 +13,7 @@ type Server struct {
 }
 
 func (s *Server) NewTask(ctx context.Context, taskRequest *map_server.Task) (*map_server.TaskResponse, error) {
-	task := model.NewTask(taskRequest.Name, taskRequest.Filename, taskRequest.Params)
+	task := model.NewTask(taskRequest.TaskId, taskRequest.TaskIndex, taskRequest.Name, taskRequest.Filename, taskRequest.SplitNums)
 
 	response := &map_server.TaskResponse{Success: true}
 	err := service.GetWorkerManager().AddTask(task, taskRequest.Function)

@@ -7,7 +7,9 @@ message Task {
   string name = 1;
   string filename = 2;
   string function = 3;
-  repeated string params = 4;
+  int64 split_nums = 4;
+  int64 task_id = 5;
+  int64 task_index = 6;
 }
 
 message TaskResponse {

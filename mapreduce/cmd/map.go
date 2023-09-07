@@ -4,11 +4,12 @@ import (
 	"context"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
-	"mapreduce/internal/map_server/option"
-	MapServer "mapreduce/internal/map_server/server"
 	"mapreduce/internal/pkg/config"
 	"mapreduce/internal/pkg/log"
+	"mapreduce/internal/pkg/model"
 	"mapreduce/internal/pkg/rpc/coordinate"
+	"mapreduce/internal/worker_server/option"
+	MapServer "mapreduce/internal/worker_server/server"
 	"os"
 	"os/signal"
 	"syscall"
@@ -34,7 +35,12 @@ var mapCmd = &cobra.Command{
 			log.Fatal("Server init error: %s", err.Error())
 		}
 
-		err = coordinate.GetServerClient(mapOption.CoordinateAddress).Register(ctx, workerName, mapOption.CurrentAddress)
+		mode := coordinate.ClientMode_MapMode
+		if mapOption.GetMode() == model.ReduceMode {
+			mode = coordinate.ClientMode_ReduceMode
+		}
+
+		err = coordinate.GetServerClient(mapOption.CoordinateAddress).Register(ctx, workerName, mapOption.CurrentAddress, mode)
 		if err != nil {
 			log.Fatal("Register coordinate error: %s", err.Error())
 		}

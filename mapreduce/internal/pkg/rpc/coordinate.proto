@@ -8,17 +8,31 @@ enum WorkerStatus {
   OfflineStatus = 1;
 }
 
+enum TaskStatus {
+  TaskRunningStatus = 0;
+  TaskFinishedStatus = 1;
+  TaskFailedStatus = 2;
+}
+
+enum ClientMode {
+  MapMode = 0;
+  ReduceMode = 1;
+}
+
 message ClientInfo {
   string name = 1;
   string address = 2;
+  ClientMode mode = 3;
 }
 
 message HeartbeatRequest {
   // 服务当前状态
   string name = 1;
   WorkerStatus status = 2;
-
-  // 当前任务执行状态
+  string current_task = 3;
+  TaskStatus task_status = 4;
+  repeated string filenames = 5;
+  string message = 6;
 }
 
 message Response {

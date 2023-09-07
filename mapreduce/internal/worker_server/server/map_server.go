@@ -6,10 +6,13 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"mapreduce/internal/coordinate/model"
-	"mapreduce/internal/map_server/option"
-	"mapreduce/internal/map_server/server/grpc_server"
 	"mapreduce/internal/pkg/log"
+	functionModel "mapreduce/internal/pkg/model"
+	"mapreduce/internal/worker_server/option"
+	"mapreduce/internal/worker_server/server/grpc_server"
+	"mapreduce/internal/worker_server/service"
 	"net"
+	"plugin"
 )
 
 type MapServer struct {
@@ -41,7 +44,41 @@ func (server *MapServer) GetOption() *option.Option {
 func (server *MapServer) Init() error {
 	log.InitLogrus()
 	server.GrpcServer = grpc_server.InitGrpcServer(grpc.NewServer())
+	server.RegisterFunction()
+
+	service.GetWorkerManager().SetWorkMode(server.Option.GetMode())
+
 	return nil
+}
+
+func (server *MapServer) RegisterFunction() {
+	for _, functionName := range server.Option.Functions {
+		functionFilePath := fmt.Sprintf("%s/%s.so", server.Option.FunctionRoute, functionName)
+		p, err := plugin.Open(functionFilePath)
+		if err != nil {
+			panic(fmt.Sprintf("open plugin error: %s", err.Error()))
+		}
+
+		xMapF, err := p.Lookup("Map")
+		if err != nil {
+			panic(fmt.Sprintf("lookup map function error: %s", err.Error()))
+		}
+
+		mapf := xMapF.(func(string, string) []functionModel.KeyValue)
+
+		xReduceF, err := p.Lookup("Reduce")
+		if err != nil {
+			panic(fmt.Sprintf("lookup reduce function error: %s", err.Error()))
+		}
+
+		log.Info("register function <%s> success", functionName)
+		reduceF := xReduceF.(func(string, []string) string)
+		service.GetWorkerManager().Register(&functionModel.Function{
+			Name:   functionName,
+			Map:    mapf,
+			Reduce: reduceF,
+		})
+	}
 }
 
 func (server *MapServer) Start() {

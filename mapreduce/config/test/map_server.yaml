@@ -3,3 +3,7 @@ current_address: 127.0.0.1:6433
 grpc_port: 6433
 heart_beat_interval_ms: 5000
 heart_beat_interval_s: 5
+
+function_route: ./internal/pkg/mrapps
+functions:
+  wc

@@ -6,6 +6,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"mapreduce/internal/coordinate/model"
+	mapModel "mapreduce/internal/worker_server/model"
+	"mapreduce/internal/worker_server/service"
 	"sync"
 )
 
@@ -33,10 +35,11 @@ func GetServerClient(address string) *ServerClient {
 	return client
 }
 
-func (client *ServerClient) Register(ctx context.Context, name string, address string) error {
+func (client *ServerClient) Register(ctx context.Context, name string, address string, mode ClientMode) error {
 	response, err := client.client.Register(ctx, &ClientInfo{
 		Name:    name,
 		Address: address,
+		Mode:    mode,
 	})
 
 	if err != nil {
@@ -59,10 +62,28 @@ func (client *ServerClient) HeartbeatOffline(ctx context.Context, wk *model.Work
 }
 
 func (client *ServerClient) Heartbeat(ctx context.Context, wk *model.Worker, status WorkerStatus) error {
-	response, err := client.client.Heartbeat(ctx, &HeartbeatRequest{
+	workerManager := service.GetWorkerManager()
+	request := &HeartbeatRequest{
 		Name:   wk.Name,
 		Status: status,
-	})
+	}
+
+	if workerManager != nil && workerManager.CurrentTask != nil {
+		request.CurrentTask = workerManager.CurrentTask.Name
+		switch workerManager.CurrentTask.Status {
+		case mapModel.InitStatus:
+		case mapModel.RunningStatus:
+			request.TaskStatus = TaskStatus_TaskRunningStatus
+		case mapModel.DoneStatus:
+			request.TaskStatus = TaskStatus_TaskFinishedStatus
+			request.Filenames = workerManager.CurrentTask.ResFileNames
+		case mapModel.FailedStatus:
+			request.TaskStatus = TaskStatus_TaskFailedStatus
+			request.Message = workerManager.CurrentTask.Err.Error()
+		}
+	}
+
+	response, err := client.client.Heartbeat(ctx, request)
 
 	if err != nil {
 		return errors.Wrap(err, "heartbeat error")

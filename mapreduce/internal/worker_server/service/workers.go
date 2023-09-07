@@ -3,8 +3,8 @@ package service
 import (
 	"fmt"
 	"github.com/pkg/errors"
-	"mapreduce/internal/map_server/model"
 	functionModel "mapreduce/internal/pkg/model"
+	"mapreduce/internal/worker_server/model"
 )
 
 var workerManager *WorkerManager
@@ -16,6 +16,7 @@ func GetWorkerManager() *WorkerManager {
 func init() {
 	workerManager = &WorkerManager{
 		Functions: make(map[string]*functionModel.Function),
+		SingleC:   make(chan struct{}, 1),
 	}
 }
 
@@ -27,6 +28,12 @@ type WorkerManager struct {
 	Functions     map[string]*functionModel.Function
 	CurrentTask   *model.Task
 	TaskHistories []TaskHistory
+	SingleC       chan struct{}
+	Mode          functionModel.WorkerMode
+}
+
+func (manager *WorkerManager) SetWorkMode(mode functionModel.WorkerMode) {
+	manager.Mode = mode
 }
 
 func (manager *WorkerManager) Register(function *functionModel.Function) {
@@ -49,6 +56,11 @@ func (manager *WorkerManager) AddTask(task *model.Task, functionName string) err
 		Task: task,
 	})
 
-	task.Start()
-	return nil
+	go func() {
+		<-task.DoneC
+		manager.SingleC <- struct{}{}
+	}()
+
+	manager.SingleC <- struct{}{}
+	return task.Start(manager.Mode)
 }
