@@ -27,7 +27,7 @@ func NewErrorResponse(err error) (*coordinate.Response, error) {
 }
 
 func (s *Server) Register(ctx context.Context, info *coordinate.ClientInfo) (*coordinate.Response, error) {
-	if err := coordinator.GetService().NewWorker(info.Name, info.Address); err != nil {
+	if err := coordinator.GetService().NewWorker(info.Name, info.Address, info.Mode); err != nil {
 		return NewErrorResponse(err)
 	}
 

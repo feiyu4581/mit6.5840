@@ -13,11 +13,14 @@ const (
 )
 
 const (
+	MapWorkerType    = "map"
+	ReduceWorkerType = "reduce"
+)
+
+const (
 	WorkerInitStatus WorkerStatus = iota
 	WorkerRunningStatus
-	WorkerIdleStatus
 	WorkerOfflineStatus
-	WorkerFailedStatus
 )
 
 type Worker struct {
@@ -26,14 +29,20 @@ type Worker struct {
 	CreatedAt         time.Time
 	LastHeartbeatTime time.Time
 	Status            WorkerStatus
+	WorkerType        string
 }
 
-func NewWorker(name string, address string) *Worker {
+func NewWorker(name string, address string, isMap bool) *Worker {
+	workerType := ReduceWorkerType
+	if isMap {
+		workerType = MapWorkerType
+	}
 	return &Worker{
-		Name:      name,
-		Address:   address,
-		CreatedAt: time.Now(),
-		Status:    WorkerInitStatus,
+		Name:       name,
+		Address:    address,
+		CreatedAt:  time.Now(),
+		Status:     WorkerInitStatus,
+		WorkerType: workerType,
 	}
 }
 
@@ -51,18 +60,14 @@ func (s *Worker) GetCurrentStatus() WorkerStatus {
 	return s.Status
 }
 
+func (s *Worker) IsRunningStatus() bool {
+	return s.Status == WorkerRunningStatus
+}
+
 func (s *Worker) SetRunningStatus() {
 	s.Status = WorkerRunningStatus
 }
 
-func (s *Worker) SetIdleStatus() {
-	s.Status = WorkerIdleStatus
-}
-
 func (s *Worker) SetOfflineStatus() {
 	s.Status = WorkerOfflineStatus
-}
-
-func (s *Worker) SetFailedStatus() {
-	s.Status = WorkerFailedStatus
 }

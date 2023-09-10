@@ -1,8 +1,6 @@
 package model
 
 import (
-	"fmt"
-	"github.com/pkg/errors"
 	"sync"
 )
 
@@ -17,11 +15,14 @@ type IdleWorkerManager struct {
 	Head *IdleWorker
 	Tail *IdleWorker
 
+	cond  *sync.Cond
 	count int
 }
 
 func NewIdleWorkerManager() *IdleWorkerManager {
-	return &IdleWorkerManager{}
+	manager := &IdleWorkerManager{}
+	manager.cond = sync.NewCond(manager)
+	return manager
 }
 
 func (m *IdleWorkerManager) Add(worker *Worker) {
@@ -35,20 +36,41 @@ func (m *IdleWorkerManager) Add(worker *Worker) {
 	if m.IsEmpty() {
 		m.Head = idleWorker
 		m.Tail = idleWorker
+		m.count = 1
 		return
 	}
 
 	m.Tail.Next = idleWorker
 	m.Tail = idleWorker
 	m.count += 1
+	m.cond.Broadcast()
 }
 
-func (m *IdleWorkerManager) Pop() *Worker {
-	m.Lock()
-	defer m.Unlock()
+func (m *IdleWorkerManager) isCountEnough(count int) bool {
+	if m.count < count {
+		return false
+	}
 
-	if m.IsEmpty() {
-		return nil
+	currentCount := 0
+	current := m.Head
+	for current != nil {
+		if current.Worker.IsRunningStatus() {
+			currentCount += 1
+			if currentCount >= count {
+				return true
+			}
+		}
+
+		current = current.Next
+	}
+
+	return false
+}
+
+func (m *IdleWorkerManager) PopActiveWorkerWithoutLock() *Worker {
+	worker := m.PopWithoutLock()
+	if worker == nil || worker.IsRunningStatus() {
+		return worker
 	}
 
 	return m.PopWithoutLock()
@@ -65,22 +87,18 @@ func (m *IdleWorkerManager) IsEmpty() bool {
 	return m.Head == nil
 }
 
-func (m *IdleWorkerManager) ChooseWorkers(nums int) ([]*Worker, error) {
-	if m.count < nums {
-		return nil, errors.New(fmt.Sprintf("idle worker is not enough, need %d, but only %d", nums, m.count))
-	}
-
+func (m *IdleWorkerManager) ChooseWorkers(nums int) []*Worker {
 	m.Lock()
 	defer m.Unlock()
 
-	if m.count < nums {
-		return nil, errors.New(fmt.Sprintf("idle worker is not enough, need %d, but only %d", nums, m.count))
+	for !m.isCountEnough(nums) {
+		m.cond.Wait()
 	}
 
 	res := make([]*Worker, 0, nums)
 	for i := 0; i < nums; i++ {
-		res = append(res, m.PopWithoutLock())
+		res = append(res, m.PopActiveWorkerWithoutLock())
 	}
 
-	return res, nil
+	return res
 }

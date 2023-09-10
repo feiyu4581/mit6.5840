@@ -44,13 +44,8 @@ func NewTask(context *gin.Context) {
 		return
 	}
 
-	err = coordinator.GetService().AddTask(
+	coordinator.GetService().AddTask(
 		model.NewTask(fileNames, request.Name, request.Worker, request.MNums, request.RNums))
-
-	if err != nil {
-		context.JSON(400, err.Error())
-		return
-	}
 
 	context.JSON(200, "success")
 }

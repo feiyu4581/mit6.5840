@@ -23,7 +23,7 @@ type MapServer struct {
 }
 
 func NewServer(ctx context.Context, workerName string, option *option.Option) (*MapServer, error) {
-	wk := model.NewWorker(workerName, fmt.Sprintf(":%d", option.GrpcPort))
+	wk := model.NewWorker(workerName, fmt.Sprintf(":%d", option.GrpcPort), option.GetMode() == functionModel.MapMode)
 	server := &MapServer{
 		Option: option,
 		Worker: wk,
