@@ -95,4 +95,5 @@ func (server *MapServer) Start() {
 	}()
 
 	go server.LoopForHeartBeat()
+	service.GetWorkerManager().SingleC <- struct{}{}
 }

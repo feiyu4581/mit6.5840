@@ -9,6 +9,27 @@ import (
 
 type Line []byte
 
+func ReadFiles(filenames []string) ([]Line, error) {
+	allLines := make([][]Line, 0, len(filenames))
+	lineCount := 0
+	for _, filename := range filenames {
+		subLines, err := ReadFile(filename)
+		if err != nil {
+			return nil, errors.Wrap(err, "execute map function error")
+		}
+
+		allLines = append(allLines, subLines)
+		lineCount += len(subLines)
+	}
+
+	lines := make([]Line, 0, lineCount)
+	for _, subLines := range allLines {
+		lines = append(lines, subLines...)
+	}
+
+	return lines, nil
+}
+
 func ReadFile(filename string) ([]Line, error) {
 	file, err := os.Open(filename)
 	if err != nil {

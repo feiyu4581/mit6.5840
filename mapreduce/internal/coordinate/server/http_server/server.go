@@ -45,7 +45,7 @@ func NewTask(context *gin.Context) {
 	}
 
 	coordinator.GetService().AddTask(
-		model.NewTask(fileNames, request.Name, request.Worker, request.MNums, request.RNums))
+		context, model.NewTask(fileNames, request.Name, request.Worker, request.MNums, request.RNums))
 
 	context.JSON(200, "success")
 }

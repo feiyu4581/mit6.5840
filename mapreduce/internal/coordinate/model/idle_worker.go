@@ -28,6 +28,7 @@ func NewIdleWorkerManager() *IdleWorkerManager {
 func (m *IdleWorkerManager) Add(worker *Worker) {
 	m.Lock()
 	defer m.Unlock()
+	defer m.cond.Broadcast()
 
 	idleWorker := &IdleWorker{
 		Worker: worker,
@@ -43,7 +44,6 @@ func (m *IdleWorkerManager) Add(worker *Worker) {
 	m.Tail.Next = idleWorker
 	m.Tail = idleWorker
 	m.count += 1
-	m.cond.Broadcast()
 }
 
 func (m *IdleWorkerManager) isCountEnough(count int) bool {

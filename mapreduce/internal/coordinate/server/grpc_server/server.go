@@ -2,8 +2,11 @@ package grpc_server
 
 import (
 	"context"
+	"github.com/pkg/errors"
 	"google.golang.org/grpc"
+	"mapreduce/internal/coordinate/model"
 	"mapreduce/internal/coordinate/service/coordinator"
+	"mapreduce/internal/pkg/log"
 	"mapreduce/internal/pkg/rpc/coordinate"
 )
 
@@ -26,7 +29,7 @@ func NewErrorResponse(err error) (*coordinate.Response, error) {
 	return NewResponse(-1, err.Error()), nil
 }
 
-func (s *Server) Register(ctx context.Context, info *coordinate.ClientInfo) (*coordinate.Response, error) {
+func (s *Server) Register(_ context.Context, info *coordinate.ClientInfo) (*coordinate.Response, error) {
 	if err := coordinator.GetService().NewWorker(info.Name, info.Address, info.Mode); err != nil {
 		return NewErrorResponse(err)
 	}
@@ -34,7 +37,7 @@ func (s *Server) Register(ctx context.Context, info *coordinate.ClientInfo) (*co
 	return NewSuccessResponse()
 }
 
-func (s *Server) Heartbeat(ctx context.Context, request *coordinate.HeartbeatRequest) (*coordinate.Response, error) {
+func (s *Server) Heartbeat(_ context.Context, request *coordinate.HeartbeatRequest) (*coordinate.Response, error) {
 	wk, err := coordinator.GetService().GetWorker(request.Name)
 	if err != nil {
 		return NewErrorResponse(err)
@@ -48,6 +51,34 @@ func (s *Server) Heartbeat(ctx context.Context, request *coordinate.HeartbeatReq
 	}
 
 	wk.UpdateHeartbeat()
+
+	log.Info("接收到 heatbeat 消息：%v", request)
+	if request.CurrentTask != "" {
+		task := coordinator.GetService().GetTask(request.CurrentTask)
+		if task == nil {
+			log.Error("Task <%s> does not exists", request.CurrentTask)
+		} else {
+			switch request.TaskStatus {
+			case coordinate.TaskStatus_TaskRunningStatus:
+				log.Info("Task <%s> is running", request.CurrentTask)
+			case coordinate.TaskStatus_TaskFinishedStatus:
+				if task.Status == model.RunningMapStatus {
+					log.Info("赋值 map 结果：%s", request.Filenames)
+					task.Status = model.WaitingReduceStatus
+					task.MapWorkers[request.Name].FileNames = request.Filenames
+				} else if task.Status == model.RunningReduceStatus {
+					log.Info("赋值 reduce 结果：%s", request.Filenames)
+					task.Status = model.FinishedStatus
+					task.ReduceWorkers[request.Name].FileNames = request.Filenames
+				}
+			case coordinate.TaskStatus_TaskFailedStatus:
+				task.Status = model.FailedStatus
+				task.Err = errors.New(request.Message)
+			}
+			task.SingleC <- struct{}{}
+		}
+	}
+
 	return NewSuccessResponse()
 }
 

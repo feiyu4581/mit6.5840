@@ -26,6 +26,5 @@ func (server *MapServer) LoopForHeartBeat() {
 				log.Error("heartbeat error: %s", err.Error())
 			}
 		}
-		log.Info("done")
 	}
 }

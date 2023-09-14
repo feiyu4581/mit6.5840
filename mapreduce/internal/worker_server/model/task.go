@@ -25,6 +25,7 @@ type Task struct {
 	TaskId    int64
 	TaskIndex int64
 	Filename  string
+	Filenames []string
 	Nums      int64
 	StartTime time.Time
 	EndTime   time.Time
@@ -36,12 +37,12 @@ type Task struct {
 	ResFileNames []string
 }
 
-func NewTask(taskId, taskIndex int64, name string, filename string, nums int64) *Task {
+func NewTask(taskId, taskIndex int64, name string, filenames []string, nums int64) *Task {
 	return &Task{
 		TaskId:    taskId,
 		TaskIndex: taskIndex,
 		Name:      name,
-		Filename:  filename,
+		Filenames: filenames,
 		Nums:      nums,
 		Status:    InitStatus,
 		DoneC:     make(chan struct{}),
@@ -111,11 +112,11 @@ func (task *Task) ParseReduceLines(lines []utils.Line) (map[string][]string, err
 	res := make(map[string][]string, len(lines))
 	for _, line := range lines {
 		kv := strings.Split(string(line), ",")
-		if len(kv) != 2 {
+		if len(kv) < 2 {
 			return nil, errors.New(fmt.Sprintf("line[%s] is invalid", line))
 		}
 
-		res[kv[0]] = append(res[kv[0]], kv[1])
+		res[kv[0]] = append(res[kv[0]], kv[1:]...)
 	}
 
 	return res, nil
@@ -132,7 +133,7 @@ func (task *Task) Start(mode model.WorkerMode) (err error) {
 	task.Status = RunningStatus
 	switch mode {
 	case model.MapMode:
-		resC, mapErr := task.Function.ExecuteMap(task.Filename)
+		resC, mapErr := task.Function.ExecuteMap(task.Filenames)
 		if mapErr != nil {
 			return errors.Wrap(err, "execute map function error")
 		}
@@ -146,7 +147,7 @@ func (task *Task) Start(mode model.WorkerMode) (err error) {
 		}()
 		return nil
 	case model.ReduceMode:
-		lines, err := utils.ReadFile(task.Filename)
+		lines, err := utils.ReadFiles(task.Filenames)
 		if err != nil {
 			return errors.Wrap(err, "execute reduce function error")
 		}
@@ -172,6 +173,8 @@ func (task *Task) Start(mode model.WorkerMode) (err error) {
 				task.SetDone([]string{filename})
 			}
 		}()
+
+		return nil
 	}
 
 	return errors.New(fmt.Sprintf("mode[%d] is not supported", mode))

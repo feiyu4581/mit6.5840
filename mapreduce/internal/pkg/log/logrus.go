@@ -1,6 +1,7 @@
 package log
 
 import (
+	"fmt"
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/sirupsen/logrus"
 	"io"
@@ -13,6 +14,7 @@ var log *logrus.Logger
 func InitLogrus() {
 	log = logrus.New()
 	log.SetFormatter(&logrus.TextFormatter{})
+
 	log.SetLevel(logrus.TraceLevel)
 	log.SetReportCaller(true)
 
@@ -20,7 +22,6 @@ func InitLogrus() {
 
 	writer, _ := rotatelogs.New(
 		path+".%Y%m%d",
-		//rotatelogs.WithLinkName(path),
 		rotatelogs.WithRotationCount(10),
 		rotatelogs.WithRotationTime(time.Hour*24))
 
@@ -32,7 +33,8 @@ func Fatal(format string, args ...interface{}) {
 }
 
 func Info(format string, args ...interface{}) {
-	log.Infof(format, args...)
+	fmt.Println(fmt.Sprintf(format, args...))
+	//log.Infof(format, args...)
 }
 
 func Warn(format string, args ...interface{}) {

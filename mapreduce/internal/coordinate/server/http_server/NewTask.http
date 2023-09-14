@@ -1,0 +1,15 @@
+### Ping Test
+GET http://localhost:5432/ping
+
+
+### Generate New Task
+POST http://localhost:5432/task
+Content-Type: application/json
+
+{
+    "file_names": ["logs/log.log.20230425"],
+    "name": "Task001",
+    "worker": "wc",
+    "m_nums": 1,
+    "r_nums": 1
+}

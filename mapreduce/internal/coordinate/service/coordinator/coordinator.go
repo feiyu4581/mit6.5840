@@ -1,10 +1,13 @@
 package coordinator
 
 import (
+	"context"
 	"fmt"
 	"github.com/pkg/errors"
 	"mapreduce/internal/coordinate/model"
+	"mapreduce/internal/pkg/log"
 	"mapreduce/internal/pkg/rpc/coordinate"
+	"strings"
 	"sync"
 	"time"
 )
@@ -52,9 +55,11 @@ func (s *Service) NewWorker(name, address string, mode coordinate.ClientMode) er
 	if mode == coordinate.ClientMode_MapMode {
 		s.MapWorkers[name] = wk
 		s.IdleMapWorker.Add(wk)
+		log.Info("注册 map 服务成功")
 	} else {
 		s.ReduceWorkers[name] = wk
 		s.IdleReduceWorker.Add(wk)
+		log.Info("注册 reduce 服务成功")
 	}
 
 	return nil
@@ -81,39 +86,67 @@ func (s *Service) StoreTask(task *model.Task) {
 	s.CurrentTasks[task.Name] = task
 }
 
-// TODO close 的收尾情况，释放资源，上报结果
-func (s *Service) CloseTask(task *model.Task) {
+func (s *Service) GetTask(taskName string) *model.Task {
+	s.Lock()
+	defer s.Unlock()
 
+	return s.CurrentTasks[taskName]
 }
 
-func (s *Service) StartTask(task *model.Task) {
+func (s *Service) CloseTask(task *model.Task) {
+	log.Info("Task: %s is done: mapFilenames:%s, filenames: %s, err:%s", task.Name, task.CollectMapResult(), strings.Join(task.CollectReduceResult(), ","), task.Err)
+	for _, worker := range task.MapWorkers {
+		s.IdleMapWorker.Add(worker.Worker)
+	}
+
+	for _, worker := range task.ReduceWorkers {
+		s.IdleReduceWorker.Add(worker.Worker)
+	}
+}
+
+func (s *Service) StartTask(ctx context.Context, task *model.Task) {
 	defer s.CloseTask(task)
 
 	task.Status = model.WaitingMapStatus
 	// 强制等待 ，直到有足够的 worker
+
+	log.Info("开始等待足够的 map worker")
 	workers := s.IdleMapWorker.ChooseWorkers(task.MNums)
 	for _, worker := range workers {
 		task.MapWorkers[worker.Name] = model.NewTaskWorker(worker)
 	}
 
-	// TODO 开始 map 任务调度
 	task.Status = model.RunningMapStatus
+	log.Info("开始分发 map 任务")
+	if err := task.StartMapWorker(ctx); err != nil {
+		task.Status = model.FailedStatus
+		task.Err = err
+		return
+	}
+
+	log.Info("分发 map 任务完成")
 	if !task.WaitingStatus(model.WaitingReduceStatus) {
 		return
 	}
 
 	// 强制等待 worker，直到有足够的 worker
+	log.Info("开始等待足够的 reduce worker")
 	workers = s.IdleReduceWorker.ChooseWorkers(task.RNums)
 	for _, worker := range workers {
 		task.ReduceWorkers[worker.Name] = model.NewTaskWorker(worker)
 	}
 
-	// TODO 开始 reduce 任务调度
-	task.Status = model.RunningMapStatus
+	task.Status = model.RunningReduceStatus
+	log.Info("开始分发 reduce 任务")
+	if err := task.StartReduceWorker(ctx, task.CollectMapResult()); err != nil {
+		task.Status = model.FailedStatus
+		task.Err = err
+		return
+	}
 	task.WaitingStatus(model.FinishedStatus)
 }
 
-func (s *Service) AddTask(task *model.Task) {
+func (s *Service) AddTask(ctx context.Context, task *model.Task) {
 	s.StoreTask(task)
-	go s.StartTask(task)
+	go s.StartTask(ctx, task)
 }

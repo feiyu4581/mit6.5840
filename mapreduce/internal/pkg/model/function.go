@@ -14,8 +14,8 @@ type Function struct {
 	Reduce ReduceFunction
 }
 
-func (f *Function) ExecuteMap(filename string) (chan []KeyValue, error) {
-	lines, err := utils.ReadFile(filename)
+func (f *Function) ExecuteMap(filenames []string) (chan []KeyValue, error) {
+	lines, err := utils.ReadFiles(filenames)
 	if err != nil {
 		return nil, errors.Wrap(err, "execute map function error")
 	}
@@ -27,7 +27,7 @@ func (f *Function) ExecuteMap(filename string) (chan []KeyValue, error) {
 
 		results := make([]KeyValue, 0, len(lines))
 		for _, line := range lines {
-			results = append(results, f.Map(filename, string(line))...)
+			results = append(results, f.Map(filenames[0], string(line))...)
 		}
 
 		ans <- results

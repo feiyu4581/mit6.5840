@@ -18,16 +18,20 @@ import (
 var mapOption option.Option
 var workerName string
 
-func initMapOption() {
+func initMapOption(args []string) {
 	workerName = uuid.New().String()
-	config.UnmarshalConfig("./config/test/", "map_server.yaml", &mapOption)
+	filename := "map_server.yaml"
+	if len(args) > 0 {
+		filename = args[0]
+	}
+	config.UnmarshalConfig("./config/test/", filename, &mapOption)
 }
 
 var mapCmd = &cobra.Command{
 	Use:   "map [command]",
 	Short: "Start a map server",
 	Run: func(cmd *cobra.Command, args []string) {
-		initMapOption()
+		initMapOption(args)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		server, err := MapServer.NewServer(ctx, workerName, &mapOption)
